@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
+    <name>Trace</name>
+    <id>org.inkscape.color.trace</id>
+    <param name="tab" type="notebook">
+        <page name="Options" gui-text="Options">
+            <param name="transparency" type="bool" gui-text="Copy transparency">false</param>
+        </page>
+        <page name="Help" gui-text="Help">
+            <label xml:space="preserve">Copy color from background.</label>
+        </page>
+    </param>
+    <effect>
+        <object-type>all</object-type>
+        <effects-menu>
+            <submenu name="Color"/>
+        </effects-menu>
+    </effect>
+    <script>
+        <command location="inx" interpreter="python">color_trace.py</command>
+    </script>
+</inkscape-extension>
