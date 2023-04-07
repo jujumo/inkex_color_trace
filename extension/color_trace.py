@@ -6,7 +6,10 @@ import base64
 import inkex
 import io
 import PIL.Image
-from inkex.elements import ShapeElement, Image
+import numpy as np
+from inkex.transforms import Transform
+from inkex.elements import ShapeElement, Image, Group
+from inkex.paths import Path, CubicSuperPath
 from inkex.localization import inkex_gettext as _
 
 
@@ -63,18 +66,33 @@ class Trace(inkex.EffectExtension):
     def effect(self):
         selection = self.svg.selection
         if not selection:
-            self.svg.selection.set("layer1")
+            self.svg.selection.set(self.document.getroot())
 
         objs = self._get_objects()
         img_node, image = self._get_image()
-        parent_group = objs[0].getparent()
-        trans = parent_group.composed_transform()
+        image_bb = img_node.bounding_box()
 
-        for e in objs:
-            # print(f'{e.TAG:10}:: {e.eid:10} {e.bounding_box()})')
-            print(e.path)
-            # bb = e.bounding_box()
-            # point = list(bb.center)
+        # img_transform = Transform(scale=(1/self.svg.viewport_width, 1/self.svg.viewport_height))
+            #translate=(-image_bb.left, -image_bb.top),
+        # TODO: RASTER Path to image mask
+        for shape in objs:
+            shape_bb = shape.bounding_box()
+            path = shape.path.to_superpath()
+            print(f'SHAPE::{shape.eid:10} :: {shape.TAG:10} // pos=[{shape_bb.center}] @ {shape_bb.size}')
+            for i, subpath in enumerate(path):
+                ww = np.array(subpath)
+                ww[:, 0, :] = ww[:, 1, :]
+                ww[:, 2, :] = ww[:, 1, :]
+                print(ww[:, 1, :])
+                path[i] = ww.tolist()
+            shape.style['fill'] = 'red'
+            shape.path = path
+            # print(f'SHAPE::{shape.eid:10} :: {shape.TAG:10} // pos=[{shape.x}]')
+            # for p in e.path:
+            #     print(p)
+            # point = shape_bb.center
+            # point2 = img_transform.apply_to_point(point)
+            # print(f'{point} ==> {point2}')
             # trans = e.composed_transform()
             # point = trans.apply_to_point(point)
             # point = tuple(int(p) for p in point)
@@ -89,8 +107,8 @@ class Trace(inkex.EffectExtension):
 
 if __name__ == "__main__":
     if True:
-        input_file = r'C:\Users\jumo\Desktop\drawing.svg'
-        output_file = r'C:\Users\jumo\Desktop\drawing_.svg'
+        input_file = r'D:\devel\inkex_color_trace\sample\drawing.svg'
+        output_file = r'D:\devel\inkex_color_trace\sample\result.svg'
         Trace().run([input_file, '--output=' + output_file])
     else:
         Trace().run()
