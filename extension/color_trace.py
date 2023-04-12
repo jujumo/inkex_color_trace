@@ -10,10 +10,10 @@ import PIL.ImageDraw
 import PIL.ImagePath
 import numpy as np
 from inkex.transforms import Transform
-from inkex.elements import ShapeElement, Image, Group
+from inkex.elements import ShapeElement, Image, Group, PathElement
 from inkex.paths import Path, CubicSuperPath
 from inkex.localization import inkex_gettext as _
-import math
+
 
 class Trace(inkex.EffectExtension):
     """Randomize the colours of all objects"""
@@ -68,50 +68,55 @@ class Trace(inkex.EffectExtension):
     def effect(self):
         selection = self.svg.selection
         if not selection:
+            self.msg(_('No selection'))
             self.svg.selection.set(self.document.getroot())
 
-        objs = self._get_objects()
-        img_node, image = self._get_image()
-        image_bb = img_node.bounding_box()
-        image_black = PIL.Image.new(mode="RGB", size=image.size, color=(0, 0, 0))
+        shapes = self._get_objects()
+        image_node, image = self._get_image()
 
+        matrix_image_node_from_world, matrix_image_from_image_node = np.identity(3), np.identity(3)
+        matrix_image_node_from_world[0:2, :] = np.array((-image_node.composed_transform()).matrix)
+        matrix_image_from_image_node[0:2, 2] = -np.array([image_node.left, image_node.top])
+        matrix_pixels_from_u = np.diag([image.width / image_node.width, image.height / image_node.height, 1])
+        matrix_pixel_from_world = matrix_pixels_from_u @ matrix_image_from_image_node @ matrix_image_node_from_world
+
+        image_black = PIL.Image.new(mode="RGB", size=image.size, color=(0, 0, 0))
+        image_debug = image.copy()
         mask = PIL.Image.new("L", image.size, 0)
         mask_canvas = PIL.ImageDraw.Draw(mask)
-        scale = np.array([
-            image.width / image_bb.width,
-            image.height / image_bb.height
-        ])
-        translate = np.array([
-            -image_bb.top,
-            -image_bb.left
-        ])
+        debug_canvas = PIL.ImageDraw.Draw(image_debug) if image_debug else None
 
-        # TODO: RASTER Path to image mask
-        for shape in objs:
-            shape.apply_transform()
-            shape_bb = shape.bounding_box()
-            path = shape.path.to_superpath()
+        matrix_world_from_shape = np.identity(3)
+        for shape in shapes:
             # print(f'SHAPE::{shape.eid:10} :: {shape.TAG:10} // pos=[{shape_bb.center}] @ {shape_bb.size}')
+            matrix_world_from_shape[0:2, :] = shape.composed_transform().matrix
+            matrix_pixel_from_shape = matrix_pixel_from_world @ matrix_world_from_shape
+            path = shape.path.to_superpath()
             mask_canvas.rectangle([(0, 0), mask.size], fill='black')
             for i, subpath in enumerate(path):
-                xys = np.array(subpath)[:, 1, :]
-                xys = (xys +translate) * scale
-                polygon = [tuple(p) for p in xys]
-                mask_canvas.polygon(polygon, fill="#ffffff", outline="black")
+                points_shape_homogen = np.ones((3, len(subpath)))
+                points_shape_homogen[0:2, :] = np.array(subpath)[:, 1, :].transpose()
+                points_shape_homogen = matrix_pixel_from_shape @ points_shape_homogen
+                polygon = [(p[0], p[1])
+                           for p in points_shape_homogen.transpose()]
+                mask_canvas.polygon(polygon, fill="#ffffff")
+                if debug_canvas:
+                    debug_canvas.line(polygon, fill="red", width=10)
+                    # debug_canvas.polygon(polygon, fill="#ffffff")
                 image_composed = PIL.Image.composite(image, image_black, mask)
                 # image_composed.show()
-            color_average = np.sum(np.asarray(image_composed), axis=(0, 1)) / np.count_nonzero(np.asarray(mask))
-            color_average = color_average.astype(int)
-            color_print = f'#{color_average[0]:02x}{color_average[1]:02x}{color_average[2]:02x}'
-            # print(color_print)
-            shape.style['fill'] = color_print
-            shape.path = path
+
+            mask_size = np.count_nonzero(np.asarray(mask))
+            if mask_size != 0:
+                color_average = np.sum(np.asarray(image_composed), axis=(0, 1)) / mask_size
+                color_average = color_average.astype(int)
+                color_print = f'#{color_average[0]:02x}{color_average[1]:02x}{color_average[2]:02x}'
+                shape.style['fill'] = color_print
+                shape.path = path
+
+        if image_debug:
+            image_debug.show()
 
 
 if __name__ == "__main__":
-    if True:
-        input_file = r'/local/devel/inkex_color_trace/sample/drawing.svg'
-        output_file = r'/local/devel/inkex_color_trace/sample/result.svg'
-        Trace().run([input_file, '--output=' + output_file])
-    else:
-        Trace().run()
+    Trace().run()
