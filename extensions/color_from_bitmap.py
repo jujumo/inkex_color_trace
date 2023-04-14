@@ -1,8 +1,8 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-'''
+"""
 Grab color from underlying bitmap and apply it to paths.
-'''
+"""
 
 
 import sys
@@ -22,17 +22,18 @@ class ColorFromBitmap(inkex.EffectExtension):
     """Grab color from underlying bitmap and apply it to paths."""
 
     def add_arguments(self, pars):
-        pars.add_argument("--tab")
-        pars.add_argument("--debug", type=bool, default=0, help="also output debug images")
+        inkex.errormsg('add args')
+        pars.add_argument("--tab", dest='tab',)
+        pars.add_argument("--show_debug", type=inkex.Boolean, default=False, help="also output debug images")
         pars.add_argument("--erode", type=int, default=0, help="erode path (using stroke)")
 
     @staticmethod
     def _read_image(img_elt) -> PIL.Image:
-        '''
+        """
         Read an image from either the SVG file itself or an external file.
         remixed from: https://inkscape.org/~pakin/%E2%98%85pixels-to-objects
                         -- by Scott Pakin
-        '''
+        """
         # Read the image from an external file.
         fname = img_elt.get('sodipodi:absref')
         if fname is not None:
@@ -55,9 +56,9 @@ class ColorFromBitmap(inkex.EffectExtension):
         return PIL.Image.open(io.BytesIO(raw_data))
 
     def _get_image(self) -> (Image, PIL.Image):
-        '''
+        """
         Return both the svg image node and the image bitmap.
-        '''
+        """
         image_node = next(iter(self.svg.selection.get(Image)))
         if image_node is None:
             raise ValueError('unable to find image bitmap in selection.')
@@ -73,6 +74,7 @@ class ColorFromBitmap(inkex.EffectExtension):
         return paths
 
     def effect(self):
+        inkex.errormsg(f'show_debug= {self.options.show_debug}\nerode={self.options.erode}')
         try:
             selection = self.svg.selection
             if not selection:
@@ -91,7 +93,7 @@ class ColorFromBitmap(inkex.EffectExtension):
             matrix_pixel_from_world = matrix_pixels_from_u @ matrix_image_from_image_node @ matrix_image_node_from_world
 
             image_black = PIL.Image.new(mode="RGB", size=image.size, color=(0, 0, 0))
-            image_debug = image.copy() if self.options.debug else None
+            image_debug = image.copy() if self.options.show_debug else None
             mask = PIL.Image.new("L", image.size, 0)
             mask_canvas = PIL.ImageDraw.Draw(mask)
             debug_canvas = PIL.ImageDraw.Draw(image_debug) if image_debug else None
@@ -119,13 +121,16 @@ class ColorFromBitmap(inkex.EffectExtension):
                     points_shape_homogen = matrix_pixel_from_shape @ points_shape_homogen
                     polygon = [(p[0], p[1])
                                for p in points_shape_homogen.transpose()]
-                    if self.options.erode != 0:
-                        stroke_color = '#000000' if self.options.erode > 0 else '#ffffff'
-                        mask_canvas.line(polygon, fill=stroke_color, width=abs(self.options.erode) * 2)
-                    mask_canvas.polygon(polygon, fill="#ffffff")
+                    stroke_color = None
+                    stroke_width = abs(self.options.erode) * 2
+                    if self.options.erode > 0:
+                        stroke_color = '#000000'
+                    if self.options.erode < 0:
+                        stroke_color = '#ffffff'
+                    mask_canvas.polygon(polygon, fill='#ffffff', outline=stroke_color, width=stroke_width)
 
                     image_composed = PIL.Image.composite(image, image_black, mask)
-                    mask.show()
+                    # mask.show()
                     # image_composed.show()
 
                 mask_size = np.count_nonzero(np.asarray(mask))
@@ -138,9 +143,13 @@ class ColorFromBitmap(inkex.EffectExtension):
                 shape.style['fill'] = color_print
                 # shape.style.update(eroding_stroke_style)
                 if debug_canvas:
-                    debug_canvas.polygon(polygon, fill=color_print)
-                    # if self.options.erode > 0:
-                    #     debug_canvas.line(polygon, fill="black", width=self.options.erode*2)
+                    stroke_color = None
+                    if self.options.erode < 0:
+                        stroke_color = color_print
+                    debug_canvas.polygon(polygon,
+                                         fill=color_print,
+                                         outline=stroke_color,
+                                         width=abs(self.options.erode)*2)
 
             if image_debug:
                 image_debug.show()
