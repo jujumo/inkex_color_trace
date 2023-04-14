@@ -30,7 +30,8 @@ class ColorFromBitmap(inkex.EffectExtension):
     def _read_image(img_elt) -> PIL.Image:
         '''
         Read an image from either the SVG file itself or an external file.
-        remixed from:
+        remixed from: https://inkscape.org/~pakin/%E2%98%85pixels-to-objects
+                        -- by Scott Pakin
         '''
         # Read the image from an external file.
         fname = img_elt.get('sodipodi:absref')
