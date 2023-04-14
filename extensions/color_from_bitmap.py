@@ -22,7 +22,6 @@ class ColorFromBitmap(inkex.EffectExtension):
     """Grab color from underlying bitmap and apply it to paths."""
 
     def add_arguments(self, pars):
-        inkex.errormsg('add args')
         pars.add_argument("--tab", dest='tab',)
         pars.add_argument("--show_debug", type=inkex.Boolean, default=False, help="also output debug images")
         pars.add_argument("--erode", type=int, default=0, help="erode path (using stroke)")
@@ -59,7 +58,7 @@ class ColorFromBitmap(inkex.EffectExtension):
         """
         Return both the svg image node and the image bitmap.
         """
-        image_node = next(iter(self.svg.selection.get(Image)))
+        image_node = next(iter(self.svg.selection.get(Image)), None)
         if image_node is None:
             raise ValueError('unable to find image bitmap in selection.')
         image = self._read_image(image_node).convert('RGBA')
@@ -74,7 +73,6 @@ class ColorFromBitmap(inkex.EffectExtension):
         return paths
 
     def effect(self):
-        inkex.errormsg(f'show_debug= {self.options.show_debug}\nerode={self.options.erode}')
         try:
             selection = self.svg.selection
             if not selection:
@@ -121,16 +119,17 @@ class ColorFromBitmap(inkex.EffectExtension):
                     points_shape_homogen = matrix_pixel_from_shape @ points_shape_homogen
                     polygon = [(p[0], p[1])
                                for p in points_shape_homogen.transpose()]
-                    stroke_color = None
-                    stroke_width = abs(self.options.erode) * 2
+                    mask_canvas.polygon(polygon, fill='#ffffff')
+                    # handle erosion
                     if self.options.erode > 0:
-                        stroke_color = '#000000'
+                        # outline only draw inside the polygon
+                        mask_canvas.polygon(polygon, fill=None, outline='#000000', width=self.options.erode)
+                    # handle dilatation (!erosion)
                     if self.options.erode < 0:
-                        stroke_color = '#ffffff'
-                    mask_canvas.polygon(polygon, fill='#ffffff', outline=stroke_color, width=stroke_width)
-
-                    image_composed = PIL.Image.composite(image, image_black, mask)
+                        # lines draw over the polygon, but corners are cut
+                        mask_canvas.line(polygon, fill='#ffffff', width=abs(self.options.erode) * 2)
                     # mask.show()
+                    image_composed = PIL.Image.composite(image, image_black, mask)
                     # image_composed.show()
 
                 mask_size = np.count_nonzero(np.asarray(mask))
@@ -161,7 +160,7 @@ class ColorFromBitmap(inkex.EffectExtension):
                 image_debug.close()
         except ValueError as e:
             inkex.errormsg(e)
-            sys.exit(-1)
+            sys.exit(1)
 
 
 if __name__ == "__main__":
