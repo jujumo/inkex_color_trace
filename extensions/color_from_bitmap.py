@@ -1,7 +1,17 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Grab color from underlying bitmap and apply it to paths.
+Grab color from underlying bitmap and apply it to path objects.
+The color is averaged all over the path area. Erode parameter can be used
+to shrink or expand (using negative value) this area.
+If multiple bitmaps are selected, only one is considered.
+
+Known limitations:
+- Only handle path objects: does not work on rectangles, circles, ... So convert all those to path
+- Only works with straight paths: bezier area are approximated using straight lines.
+- Dilatation (negative erosion) have weird corners
+- Ignore any cliping on the image
+- slow
 """
 
 
@@ -73,6 +83,15 @@ class ColorFromBitmap(inkex.EffectExtension):
         return paths
 
     def effect(self):
+        """
+        the effect
+        select one image and all path
+        for all path:
+         Raster/Render the path using polygon in binary mask image.
+         Use outline to erode/dilate if needed.
+         Then use that mask to select pixel of the image that fall into the path.
+         Average those pixels and apply this computed color to the path.
+        """
         try:
             selection = self.svg.selection
             if not selection:
@@ -112,11 +131,15 @@ class ColorFromBitmap(inkex.EffectExtension):
                 matrix_world_from_shape[0:2, :] = shape.composed_transform().matrix
                 matrix_pixel_from_shape = matrix_pixel_from_world @ matrix_world_from_shape
                 path = shape.path.to_superpath()
+                # reset mask to None
                 mask_canvas.rectangle([(0, 0), mask.size], fill='black')
                 for i, subpath in enumerate(path):
+                    # retreive the path polygon coordinates
                     points_shape_homogen = np.ones((3, len(subpath)))
                     points_shape_homogen[0:2, :] = np.array(subpath)[:, 1, :].transpose()
+                    # convert path coordinates to pixel coordinates into the image
                     points_shape_homogen = matrix_pixel_from_shape @ points_shape_homogen
+                    # draw the path area into the mask
                     polygon = [(p[0], p[1])
                                for p in points_shape_homogen.transpose()]
                     mask_canvas.polygon(polygon, fill='#ffffff')
@@ -129,18 +152,21 @@ class ColorFromBitmap(inkex.EffectExtension):
                         # lines draw over the polygon, but corners are cut
                         mask_canvas.line(polygon, fill='#ffffff', width=abs(self.options.erode) * 2)
                     # mask.show()
+                    # select the image pixels
                     image_composed = PIL.Image.composite(image, image_black, mask)
                     # image_composed.show()
 
+                # early stop if no pixels to average
                 mask_size = np.count_nonzero(np.asarray(mask))
                 if mask_size == 0:
                     continue
-
+                # compute color average
                 color_average = np.sum(np.asarray(image_composed), axis=(0, 1)) / mask_size
                 color_average = color_average.astype(int)
+                # apply color to the path
                 color_print = f'#{color_average[0]:02x}{color_average[1]:02x}{color_average[2]:02x}'
                 shape.style['fill'] = color_print
-                # shape.style.update(eroding_stroke_style)
+
                 if debug_canvas:
                     stroke_color = None
                     if self.options.erode < 0:
