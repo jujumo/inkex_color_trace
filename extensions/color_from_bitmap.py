@@ -10,7 +10,7 @@ Known limitations:
 - Only handle path objects: does not work on rectangles, circles, ... So convert all those to path
 - Only works with straight paths: bezier area are approximated using straight lines.
 - Dilatation (negative erosion) have weird corners
-- Ignore any cliping on the image
+- Ignore any clipping on the image
 - slow
 """
 
@@ -44,15 +44,15 @@ class ColorFromBitmap(inkex.EffectExtension):
                         -- by Scott Pakin
         """
         # Read the image from an external file.
-        fname = img_elt.get('sodipodi:absref')
-        if fname is not None:
+        file_name = img_elt.get('sodipodi:absref')
+        if file_name is not None:
             # Fully qualified filename.  Read it directly.
-            return PIL.Image.open(fname)
+            return PIL.Image.open(file_name)
         xlink = img_elt.get('xlink:href')
         if not xlink.startswith('data:'):
             # Unqualified filename.  Try reading it directly although there's a
             # good chance this will fail.
-            return PIL.Image.open(fname)
+            return PIL.Image.open(file_name)
         # Read an image embedded in the SVG file itself.
         try:
             mime, dtype_data = xlink[5:].split(';', 1)
@@ -132,9 +132,9 @@ class ColorFromBitmap(inkex.EffectExtension):
                 matrix_pixel_from_shape = matrix_pixel_from_world @ matrix_world_from_shape
                 path = shape.path.to_superpath()
                 # reset mask to None
-                mask_canvas.rectangle([(0, 0), mask.size], fill='black')
+                mask_canvas.rectangle(((0, 0), mask.size), fill='black')
                 for i, subpath in enumerate(path):
-                    # retreive the path polygon coordinates
+                    # retrieve the path polygon coordinates
                     points_shape_homogen = np.ones((3, len(subpath)))
                     points_shape_homogen[0:2, :] = np.array(subpath)[:, 1, :].transpose()
                     # convert path coordinates to pixel coordinates into the image
