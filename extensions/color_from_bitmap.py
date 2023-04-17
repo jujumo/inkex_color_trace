@@ -39,8 +39,12 @@ class ColorFromBitmap(inkex.EffectExtension):
 
     def add_arguments(self, pars):
         pars.add_argument("--tab", dest='tab',)
-        pars.add_argument("--show_debug", type=inkex.Boolean, default=False, help="also output debug images")
         pars.add_argument("--erode", type=int, default=0, help="erode path (using stroke)")
+        pars.add_argument("--fill", choices=['unchanged', 'nofill', 'average'], default='average',
+                          help="apply to fill color")
+        pars.add_argument("--stroke", choices=['unchanged', 'nofill', 'average'], default='unchanged',
+                          help="apply to stroke color")
+        pars.add_argument("--show_debug", type=inkex.Boolean, default=False, help="also output debug images")
 
     def _load_image(self, image_node) -> PIL.Image:
         """
@@ -182,7 +186,14 @@ class ColorFromBitmap(inkex.EffectExtension):
                 color_average = color_average.astype(int)
                 # apply color to the path
                 color_print = f'#{color_average[0]:02x}{color_average[1]:02x}{color_average[2]:02x}'
-                shape.style['fill'] = color_print
+                if self.options.fill == 'average':
+                    shape.style['fill'] = color_print
+                if self.options.fill == 'nofill':
+                    shape.style['fill'] = None
+                if self.options.stroke == 'average':
+                    shape.style['stroke'] = color_print
+                if self.options.stroke == 'nofill':
+                    shape.style['stroke'] = None
 
                 if debug_canvas:
                     stroke_color = None
@@ -205,7 +216,7 @@ class ColorFromBitmap(inkex.EffectExtension):
             inkex.errormsg(e)
             sys.exit(1)
         except Exception as e:
-            inkex.errormsg(e)
+            inkex.errormsg(str(e))
             sys.exit(-1)
 
 

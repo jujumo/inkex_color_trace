@@ -4,6 +4,18 @@
     <id>org.inkscape.color.from_bitmap</id>
     <param name="tab" type="notebook">
         <page name="Options" gui-text="Options">
+            <param name="fill" type="optiongroup" appearance="combo"
+                        gui-text="Fill color">
+               <option value="unchanged">No change</option>
+               <option value="nofill">No color</option>
+               <option value="average">Average</option>
+            </param>
+            <param name="stroke" type="optiongroup" appearance="combo"
+                        gui-text="Stroke color">
+               <option value="unchanged">No change</option>
+               <option value="nofill">No color</option>
+               <option value="average">Average</option>
+            </param>
             <param name="erode" type="int" min="-1000" max="1000"
                 gui-text="erode">0</param>
             <param name="show_debug" type="bool"

@@ -8,7 +8,7 @@ to shrink or expand (using negative value) this area.
 If multiple bitmaps are selected, only one is considered.
 
 
-image::sample/example-klimber.svg[]
+image::samples/example-klimber.svg[]
 
 **Known limitations:**
 
