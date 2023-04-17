@@ -6,11 +6,13 @@ The color is averaged all over the path area. Erode parameter can be used
 to shrink or expand (using negative value) this area.
 If multiple bitmaps are selected, only one is considered.
 
+
 Known limitations:
-- Only handle path objects: does not work on rectangles, circles, ... So convert all those to path
+- Only consider a single image.
+- Only handle path objects: does not work on rectangles, circles, ... Make sure to convert objects to paths.
 - Only works with straight paths: bezier area are approximated using straight lines.
-- Dilatation (negative erosion) have weird corners
-- Ignore any cliping on the image
+- Dilatation (negative erosion) have weird corners.
+- Ignore any clipping on the image.
 - slow
 """
 
