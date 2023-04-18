@@ -8,19 +8,29 @@ version 1.0
 Grab color from underlying bitmap and apply it to path objects.
 The color is averaged all over the path area. Erode parameter can be used
 to shrink or expand (using negative value) this area.
-If multiple bitmaps are selected, only one is considered.
 
 
-image::samples/example-klimber.svg[]
+image::samples/example-klimber.png[]
 
-**Known limitations:**
+== Options
 
-- Only works on embedded image.
-- Only consider a single image.
+- `Fill color`: How to replace the inner color of selected shapes.
+It can be `unchanged`, `nofill` (Empty color), `average`.
+- `Stroke color`: How to replace the stroke color of selected shapes.
+It can be `unchanged`, `nofill` (Empty color), `average`.
+- `Erode`: Erode (see morpho math transformations) of the shape.
+It can be used to emphasize the contrast. If negative value is given,
+it will dilate the area, and then smoothen the contrast between adjacent areas.
+- `Show debug image`: will display an image ini external viewer for debug purposes.
+
+== Known limitations
+
+- Only consider a single image. If multiple bitmaps are selected, only one is considered.
 - Only handle path objects: does not work on rectangles, circles, ... Make sure to convert objects to paths.
 - Only works with straight paths: bezier area are approximated using straight lines.
 - Dilatation (negative erosion) have weird corners.
 - Ignore any clipping on the image.
 - slow
 
-== Delaunay tutorial
+== Delaunay example
+

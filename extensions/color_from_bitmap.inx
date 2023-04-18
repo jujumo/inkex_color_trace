@@ -17,9 +17,9 @@
                <option value="average">Average</option>
             </param>
             <param name="erode" type="int" min="-1000" max="1000"
-                gui-text="erode">0</param>
+                gui-text="Erode">0</param>
             <param name="show_debug" type="bool"
-                gui-text="Sow debug image">false</param>
+                gui-text="Show debug image">false</param>
         </page>
         <page name="Help" gui-text="Help">
             <label xml:space="preserve">Copy color from background.</label>
