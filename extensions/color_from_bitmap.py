@@ -6,11 +6,13 @@ The color is averaged all over the path area. Erode parameter can be used
 to shrink or expand (using negative value) this area.
 If multiple bitmaps are selected, only one is considered.
 
+
 Known limitations:
-- Only handle path objects: does not work on rectangles, circles, ... So convert all those to path
+- Only consider a single image.
+- Only handle path objects: does not work on rectangles, circles, ... Make sure to convert objects to paths.
 - Only works with straight paths: bezier area are approximated using straight lines.
-- Dilatation (negative erosion) have weird corners
-- Ignore any clipping on the image
+- Dilatation (negative erosion) have weird corners.
+- Ignore any clipping on the image.
 - slow
 """
 
@@ -19,6 +21,7 @@ import sys
 import base64
 import inkex
 import io
+import os.path as path
 from typing import List, Tuple, Optional
 import PIL.Image
 import PIL.ImageDraw
@@ -27,42 +30,60 @@ import numpy as np
 from inkex.elements import ShapeElement, Image
 from inkex.localization import inkex_gettext as _
 
+class ColorFromBitmapException(Exception):
+    pass
+
 
 class ColorFromBitmap(inkex.EffectExtension):
     """Grab color from underlying bitmap and apply it to paths."""
 
     def add_arguments(self, pars):
         pars.add_argument("--tab", dest='tab',)
-        pars.add_argument("--show_debug", type=inkex.Boolean, default=False, help="also output debug images")
         pars.add_argument("--erode", type=int, default=0, help="erode path (using stroke)")
+        pars.add_argument("--fill", choices=['unchanged', 'nofill', 'average'], default='average',
+                          help="apply to fill color")
+        pars.add_argument("--stroke", choices=['unchanged', 'nofill', 'average'], default='unchanged',
+                          help="apply to stroke color")
+        pars.add_argument("--show_debug", type=inkex.Boolean, default=False, help="also output debug images")
 
-    @staticmethod
-    def _read_image(img_elt) -> PIL.Image:
+    def _load_image(self, image_node) -> PIL.Image:
         """
-        Read an image from either the SVG file itself or an external file.
-        remixed from: https://inkscape.org/~pakin/%E2%98%85pixels-to-objects
-                        -- by Scott Pakin
+        Load image to PIL object from either the SVG file itself or an external file.
+        inspired from: https://inkscape.org/~pakin/%E2%98%85pixels-to-objects   -- by Scott Pakin
+        first try to load embedded image, if fails, try to load file.
         """
-        # Read the image from an external file.
-        file_name = img_elt.get('sodipodi:absref')
-        if file_name is not None:
-            # Fully qualified filename.  Read it directly.
-            return PIL.Image.open(file_name)
-        xlink = img_elt.get('xlink:href')
-        if not xlink.startswith('data:'):
-            # Unqualified filename.  Try reading it directly although there's a
-            # good chance this will fail.
-            return PIL.Image.open(file_name)
-        # Read an image embedded in the SVG file itself.
-        try:
-            mime, dtype_data = xlink[5:].split(';', 1)
-            dtype, data64 = dtype_data.split(',', 1)
-        except ValueError:
-            raise ValueError('failed to parse embedded image data')
-        if dtype != 'base64':
-            raise ValueError(f'embedded image is encoded as {dtype}, but this plugin supports only base64')
-        raw_data = base64.decodebytes(data64.encode('utf-8'))
-        return PIL.Image.open(io.BytesIO(raw_data))
+        # ignore sodipodi:absref
+        image = None
+        xlink = image_node.get('xlink:href')
+
+        # first try embedded
+        if image is None and xlink.startswith('data:'):
+            try:
+                _, dtype_data = xlink[5:].split(';', 1)
+                dtype, data64 = dtype_data.split(',', 1)
+            except ValueError:
+                raise ColorFromBitmapException('failed to parse embedded image data')
+            if dtype != 'base64':
+                raise ColorFromBitmapException(f'embedded image is encoded as {dtype}, '
+                                               f'but this plugin supports only base64')
+            raw_data = base64.decodebytes(data64.encode('utf-8'))
+            image = PIL.Image.open(io.BytesIO(raw_data))
+
+        # if unsuccessful try to load as a file
+        if image is None:
+            image_filepath = self.absolute_href(xlink)  # expect a relative path in xlink, make it absolute.
+            try:
+                image = PIL.Image.open(image_filepath)
+            except FileNotFoundError:
+                raise ColorFromBitmapException(f'Image file not found : {image_filepath}')
+            except PIL.UnidentifiedImageError:
+                raise ColorFromBitmapException(f'Error while opening image file {image_filepath}')
+
+        # none of the previous managed to load image
+        if image is None:
+            raise ColorFromBitmapException('unable to load image neither from file or base64.')
+
+        return image
 
     def _get_image(self) -> (Image, PIL.Image):
         """
@@ -70,8 +91,8 @@ class ColorFromBitmap(inkex.EffectExtension):
         """
         image_node = next(iter(self.svg.selection.get(Image)), None)
         if image_node is None:
-            raise ValueError('unable to find image bitmap in selection.')
-        image = self._read_image(image_node).convert('RGBA')
+            raise ColorFromBitmapException('unable to find image bitmap in selection.')
+        image = self._load_image(image_node).convert('RGBA')
         return image_node, image
 
     def _get_shapes(self) -> List[ShapeElement]:
@@ -101,7 +122,7 @@ class ColorFromBitmap(inkex.EffectExtension):
             image_node, image = self._get_image()
             shapes = self._get_shapes()
             if not shapes:
-                raise ValueError("No path selected.")
+                raise ColorFromBitmapException('No path selected.')
 
             matrix_image_node_from_world, matrix_image_from_image_node = np.identity(3), np.identity(3)
             matrix_image_node_from_world[0:2, :] = np.array((-image_node.composed_transform()).matrix)
@@ -165,7 +186,14 @@ class ColorFromBitmap(inkex.EffectExtension):
                 color_average = color_average.astype(int)
                 # apply color to the path
                 color_print = f'#{color_average[0]:02x}{color_average[1]:02x}{color_average[2]:02x}'
-                shape.style['fill'] = color_print
+                if self.options.fill == 'average':
+                    shape.style['fill'] = color_print
+                if self.options.fill == 'nofill':
+                    shape.style['fill'] = None
+                if self.options.stroke == 'average':
+                    shape.style['stroke'] = color_print
+                if self.options.stroke == 'nofill':
+                    shape.style['stroke'] = None
 
                 if debug_canvas:
                     stroke_color = None
@@ -184,9 +212,12 @@ class ColorFromBitmap(inkex.EffectExtension):
             image_composed.close()
             if image_debug:
                 image_debug.close()
-        except ValueError as e:
+        except ColorFromBitmapException as e:
             inkex.errormsg(e)
             sys.exit(1)
+        except Exception as e:
+            inkex.errormsg(str(e))
+            sys.exit(-1)
 
 
 if __name__ == "__main__":
