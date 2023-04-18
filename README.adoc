@@ -1,5 +1,8 @@
 = Color from Bitmap : Inkscape extension
 
+version 1.0
+
+
 == brief
 
 Grab color from underlying bitmap and apply it to path objects.

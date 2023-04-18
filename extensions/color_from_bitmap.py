@@ -6,6 +6,7 @@ The color is averaged all over the path area. Erode parameter can be used
 to shrink or expand (using negative value) this area.
 If multiple bitmaps are selected, only one is considered.
 
+version: 1.0
 
 Known limitations:
 - Only consider a single image.
