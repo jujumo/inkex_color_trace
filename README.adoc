@@ -32,5 +32,33 @@ it will dilate the area, and then smoothen the contrast between adjacent areas.
 - Ignore any clipping on the image.
 - slow
 
-== Delaunay example
+== Low poly example
 
+In this example, I describe how to use this extension to speed up a low poly design.
+
+First, place markers at key places (triangles corners). See below example.
+
+image::examples/delaunay-1.png[dots,400,400]
+
+Then generates a triangle mesh, using a delaunay triangulation, as shown below:
+
+image::examples/menu1.jpg[menu1,400,400]
+
+image::examples/dialog1.jpg[dialog1,400,400]
+
+Once you have the following mesh,
+
+image::examples/delaunay-2.png[mesh,400,400]
+
+you can colorize it, using the "from bitmap" color extension.
+Make sure you have both the image and the mesh selected.
+
+image::examples/menu2.jpg[menu2,400,400]
+
+Choose your settings, and apply.
+
+image::examples/dialog2.jpg[dialog2,400,400]
+
+You should end up with colorized objects, like below:
+
+image::examples/delaunay-3.png[colorized,400,400]
