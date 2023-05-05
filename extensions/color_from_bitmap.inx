@@ -18,8 +18,6 @@
             </param>
             <param name="erode" type="int" min="-1000" max="1000"
                 gui-text="Erode">0</param>
-            <param name="show_debug" type="bool"
-                gui-text="Show debug image">false</param>
         </page>
         <page name="Help" gui-text="Help">
             <label xml:space="preserve">Copy color from background.</label>

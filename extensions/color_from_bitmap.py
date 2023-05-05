@@ -41,9 +41,9 @@ class ColorFromBitmap(inkex.EffectExtension):
     def add_arguments(self, pars):
         pars.add_argument("--tab", dest='tab',)
         pars.add_argument("--erode", type=int, default=0, help="erode path (using stroke)")
-        pars.add_argument("--fill", choices=['unchanged', 'nofill', 'average'], default='average',
+        pars.add_argument("--fill", choices=['unchanged', 'none', 'average'], default='average',
                           help="apply to fill color")
-        pars.add_argument("--stroke", choices=['unchanged', 'nofill', 'average'], default='unchanged',
+        pars.add_argument("--stroke", choices=['unchanged', 'none', 'average'], default='unchanged',
                           help="apply to stroke color")
         pars.add_argument("--show_debug", type=inkex.Boolean, default=False, help="also output debug images")
 
@@ -116,9 +116,9 @@ class ColorFromBitmap(inkex.EffectExtension):
         """
         try:
             selection = self.svg.selection
-            if not selection:
-                self.msg(_('Nothing is selected: applying to all.'))
-                self.svg.selection.set(self.document.getroot())
+            # if not selection:
+            #     self.msg(_('Nothing is selected: applying to all.'))
+            #     self.svg.selection.set(self.document.getroot())
 
             image_node, image = self._get_image()
             shapes = self._get_shapes()
@@ -189,11 +189,11 @@ class ColorFromBitmap(inkex.EffectExtension):
                 color_print = f'#{color_average[0]:02x}{color_average[1]:02x}{color_average[2]:02x}'
                 if self.options.fill == 'average':
                     shape.style['fill'] = color_print
-                if self.options.fill == 'nofill':
+                if self.options.fill == 'none':
                     shape.style['fill'] = None
                 if self.options.stroke == 'average':
                     shape.style['stroke'] = color_print
-                if self.options.stroke == 'nofill':
+                if self.options.stroke == 'none':
                     shape.style['stroke'] = None
 
                 if debug_canvas:
