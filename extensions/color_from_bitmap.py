@@ -232,7 +232,7 @@ class ColorFromBitmap(inkex.EffectExtension):
                     if self.options.intensity == 'linear':
                         # sRGB values are not proportional to light emission.
                         # activate linear option to have a linear light intensity value.
-                        # It is required to make physical masks.
+                        # Useful to make physical masks.
                         light_intensity = srgb_to_linear(light_intensity)
                     # relation between intensity and scale:
                     # 0..255 intensity value should match scale_min..scale_max value

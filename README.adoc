@@ -14,14 +14,25 @@ image::samples/example-klimber.png[]
 
 == Options
 
-- `Fill color`: How to replace the inner color of selected shapes.
-It can be `unchanged`, `nofill` (Empty color), `average`.
-- `Stroke color`: How to replace the stroke color of selected shapes.
-It can be `unchanged`, `nofill` (Empty color), `average`.
-- `Erode`: Erode (see morpho math transformations) of the shape.
+- `Sensitivity`: Erodes (see morpho math transformations) the footprint of the shape onto the image.
 It can be used to emphasize the contrast. If negative value is given,
 it will dilate the area, and then smoothen the contrast between adjacent areas.
-- `Show debug image`: will display an image ini external viewer for debug purposes.
+
+- `Fill color`: How to replace the inner color of selected shapes.
+It can be `unchanged`, `nofill` (Empty color), `average`.
+
+- `Stroke color`: How to replace the stroke color of selected shapes.
+It can be `unchanged`, `nofill` (Empty color), `average`.
+
+- `scale_x_min` and `scale_x_max`: will remap the image intensity to a scale factor on horizontal axis.
+If both values are set to `1.0`, it will have no effect.
+
+- `scale_y_min` and `scale_y_max`: same as `scale_x_min` and `scale_x_max` on vertical axis.
+Copy scale x if you want to keep aspect ratio.
+
+- `intensity`: Method used to evaluate light intensity on a pixel.
+`sRGB` takes the raw RGB values, `linear` make convert to values proportional to light emission.
+
 
 == Known limitations
 
