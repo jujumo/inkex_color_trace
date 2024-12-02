@@ -49,51 +49,51 @@ In this example, I describe how to use this extension to speed up a low poly des
 
 First, place markers at key places (triangles corners). See below example.
 
-image::examples/delaunay-1.png[dots,400,400]
+image::examples/delaunay-1.png[dots,400]
 
 Then generates a triangle mesh, using a delaunay triangulation, as shown below:
 
-image::examples/menu1.jpg[menu1,400,400]
+image::examples/menu1.jpg[menu1,400]
 
-image::examples/dialog1.jpg[dialog1,400,400]
+image::examples/dialog1.jpg[dialog1,400]
 
 Once you have the following mesh,
 
-image::examples/delaunay-2.png[mesh,400,400]
+image::examples/delaunay-2.png[mesh,400]
 
 you can colorize it, using the "from bitmap" color extension.
 Make sure you have both the image and the mesh selected.
 
-image::examples/menu2.jpg[menu2,400,400]
+image::examples/menu2.jpg[menu2,400]
 
 Choose your settings, and apply.
 
-image::examples/dialog2.jpg[dialog2,400,400]
+image::examples/dialog2.jpg[dialog2,400]
 
 You should end up with colorized objects, like below:
 
-image::examples/delaunay-3.png[colorized,400,400]
+image::examples/delaunay-3.png[colorized,400]
 
 == Black stripes tutorial
 
 Import an image, and create a 1x1 square.
 
-image::examples/tuto-mona1.png[mona1,400,400]
+image::examples/tuto-mona1.png[mona1,400]
 
 Use `Create Tiled Clones` to make an array of squares over the entire image.
 You might proceed in 2 steps (first horizontal and then vertical clones) to
 avoid inkscape to overheat.
 
-image::examples/tuto-mona2.png[mona2,400,400]
+image::examples/tuto-mona2.png[mona2,400]
 
 Un-clone and convert all squares to path.
 Regroup all squares into a group for convenience.
 
-image::examples/tuto-mona3.png[mona3,400,400]
+image::examples/tuto-mona3.png[mona3,400]
 
 Select both image and group of squares, and open the `color from bitmap` extension.
 
-image::examples/tuto-mona4.png[mona4,400,400]
+image::examples/tuto-mona4.png[mona4,400]
 
 In the parameters, set:
 
@@ -103,11 +103,11 @@ In the parameters, set:
 - `scale y min` and `scale y max` to `1.0` and `1.0`: it leave vertical scale untouched,
 
 
-image::examples/tuto-mona5.png[mona5,400,400]
+image::examples/tuto-mona5.png[mona5,400]
 
 Hit `apply`:
 
-image::examples/tuto-mona6.png[mona6,400,400]
+image::examples/tuto-mona6.png[mona6,400]
 
 You should end up with a retro-looking stripe.
 To simplify the drawing, you can:
