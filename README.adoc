@@ -43,7 +43,7 @@ Copy scale x if you want to keep aspect ratio.
 - Ignore any clipping on the image.
 - slow
 
-== Low poly example
+== Low poly tutorial
 
 In this example, I describe how to use this extension to speed up a low poly design.
 
@@ -73,3 +73,45 @@ image::examples/dialog2.jpg[dialog2,400,400]
 You should end up with colorized objects, like below:
 
 image::examples/delaunay-3.png[colorized,400,400]
+
+== Black stripes tutorial
+
+Import an image, and create a 1x1 square.
+
+image::examples/tuto-mona1.png[mona1,400,400]
+
+Use `Create Tiled Clones` to make an array of squares over the entire image.
+You might proceed in 2 steps (first horizontal and then vertical clones) to
+avoid inkscape to overheat.
+
+image::examples/tuto-mona2.png[mona2,400,400]
+
+Un-clone and convert all squares to path.
+Regroup all squares into a group for convenience.
+
+image::examples/tuto-mona3.png[mona3,400,400]
+
+Select both image and group of squares, and open the `color from bitmap` extension.
+
+image::examples/tuto-mona4.png[mona4,400,400]
+
+In the parameters, set:
+
+- `fill color` to `No change`
+- `stroke color` to `No color`
+- `scale x min` and `scale x max` to `1.1` and `0.0`: it will shrink light pixels,
+- `scale y min` and `scale y max` to `1.0` and `1.0`: it leave vertical scale untouched,
+
+
+image::examples/tuto-mona5.png[mona5,400,400]
+
+Hit `apply`:
+
+image::examples/tuto-mona6.png[mona6,400,400]
+
+You should end up with a retro-looking stripe.
+To simplify the drawing, you can:
+
+ - select all scaled squares
+ - merge them using "Path > union"
+ - simplify using "Path > Simplify"
