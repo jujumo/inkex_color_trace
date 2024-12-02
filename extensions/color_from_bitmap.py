@@ -31,6 +31,15 @@ import numpy as np
 from inkex.elements import ShapeElement, Image
 from inkex.localization import inkex_gettext as _
 
+
+def srgb_to_linear(srgb):
+    # Convert a single sRGB value to linear RGB
+    if srgb <= 0.04045:
+        return srgb / 12.92
+    else:
+        return ((srgb + 0.055) / 1.055) ** 2.4
+
+
 class ColorFromBitmapException(Exception):
     pass
 
@@ -45,7 +54,21 @@ class ColorFromBitmap(inkex.EffectExtension):
                           help="apply to fill color")
         pars.add_argument("--stroke", choices=['unchanged', 'none', 'average'], default='unchanged',
                           help="apply to stroke color")
-        pars.add_argument("--show_debug", type=inkex.Boolean, default=False, help="also output debug images")
+        pars.add_argument("--scale_x_min", type=float, default=1.0,
+                          help="scale factor for minimum intensity on horizontal axis.")
+        pars.add_argument("--scale_x_max", type=float, default=1.0,
+                          help="scale factor for maximum intensity on horizontal axis.")
+        pars.add_argument("--scale_y_min", type=float, default=1.0,
+                          help="scale factor for minimum intensity on vertical axis.")
+        pars.add_argument("--scale_y_max", type=float, default=1.0,
+                          help="scale factor for maximum intensity on vertical axis")
+        pars.add_argument("--intensity", choices=['sRGB', 'linear'], default='sRGB',
+                          help="which method used to compute light intensity. "
+                               "sRGB takes raw RGB values as is.")
+        pars.add_argument("--show_debug", type=inkex.Boolean, default=False,
+                          help="also output debug images")
+        pars.add_argument("--auto_select", type=inkex.Boolean, default=False,
+                          help="auto select all if no selection.")
 
     def _load_image(self, image_node) -> PIL.Image:
         """
@@ -115,21 +138,22 @@ class ColorFromBitmap(inkex.EffectExtension):
          Average those pixels and apply this computed color to the path.
         """
         try:
-            selection = self.svg.selection
-            # if not selection:
-            #     self.msg(_('Nothing is selected: applying to all.'))
-            #     self.svg.selection.set(self.document.getroot())
+            if not self.svg.selection:
+                self.msg(_('Nothing is selected: applying to all.'))
+                if self.options.auto_select:
+                    self.svg.selection.set(self.document.getroot())
 
             image_node, image = self._get_image()
             shapes = self._get_shapes()
+
             if not shapes:
                 raise ColorFromBitmapException('No path selected.')
 
             matrix_image_node_from_world, matrix_image_from_image_node = np.identity(3), np.identity(3)
             matrix_image_node_from_world[0:2, :] = np.array((-image_node.composed_transform()).matrix)
             matrix_image_from_image_node[0:2, 2] = -np.array([image_node.left, image_node.top])
-            matrix_pixels_from_u = np.diag([image.width / image_node.width, image.height / image_node.height, 1])
-            matrix_pixel_from_world = matrix_pixels_from_u @ matrix_image_from_image_node @ matrix_image_node_from_world
+            matrix_pixel_from_u = np.diag([image.width / image_node.width, image.height / image_node.height, 1])
+            matrix_pixel_from_world = matrix_pixel_from_u @ matrix_image_from_image_node @ matrix_image_node_from_world
 
             image_black = PIL.Image.new(mode="RGB", size=image.size, color=(0, 0, 0))
             image_debug = image.copy() if self.options.show_debug else None
@@ -147,6 +171,13 @@ class ColorFromBitmap(inkex.EffectExtension):
             if self.options.erode < 0:
                 # negative erode ==  dilating, uses white stroke
                 eroding_stroke_style['stroke'] = 'white'
+
+            scale_change = any(s != 1 for s in [self.options.scale_x_min,
+                                                self.options.scale_x_max,
+                                                self.options.scale_y_min,
+                                                self.options.scale_y_max])
+            scale_x_range = self.options.scale_x_max - self.options.scale_x_min
+            scale_y_range = self.options.scale_y_max - self.options.scale_y_min
 
             for shape in shapes:
                 # print(f'SHAPE::{shape.eid:10} :: {shape.TAG:10} // pos=[{shape_bb.center}] @ {shape_bb.size}')
@@ -195,6 +226,25 @@ class ColorFromBitmap(inkex.EffectExtension):
                     shape.style['stroke'] = color_print
                 if self.options.stroke == 'none':
                     shape.style['stroke'] = None
+
+                if scale_change:
+                    light_intensity = np.dot(color_average, np.array([0.299, 0.587, 0.114])) / 255
+                    if self.options.intensity == 'linear':
+                        # sRGB values are not proportional to light emission.
+                        # activate linear option to have a linear light intensity value.
+                        # It is required to make physical masks.
+                        light_intensity = srgb_to_linear(light_intensity)
+                    # relation between intensity and scale:
+                    # 0..255 intensity value should match scale_min..scale_max value
+                    scale_x = self.options.scale_x_min + light_intensity * scale_x_range
+                    scale_y = self.options.scale_y_min + light_intensity * scale_y_range
+                    bounding_box = shape.bounding_box().center
+                    matrix_shape_from_center = np.identity(3)
+                    matrix_shape_from_center[0:2, 2] = bounding_box
+                    matrix_scale = np.diag([scale_x, scale_y, 1.0])
+                    matrix_scale_from_shape = matrix_shape_from_center @ matrix_scale @ np.linalg.inv(matrix_shape_from_center)
+                    scale_transform = inkex.Transform(matrix_scale_from_shape[0:2, :].tolist())
+                    shape.update(transform=scale_transform)
 
                 if debug_canvas:
                     stroke_color = None
