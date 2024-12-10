@@ -115,3 +115,10 @@ To simplify the drawing, you can:
  - select all scaled squares
  - merge them using "Path > union"
  - simplify using "Path > Simplify"
+
+Et voilà:
+
+image::examples/mona-stripes.svg[mona7,400]
+
+See more about this fun example at:
+https://github.com/jujumo/ombre_double[ombre_double].
